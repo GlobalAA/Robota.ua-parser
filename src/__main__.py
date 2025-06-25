@@ -6,6 +6,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.firefox.webdriver import WebDriver
 
 from utils import get_last_page, parsing
 
@@ -18,19 +19,23 @@ load_dotenv()
 
 VACANCY: str = os.getenv("VACANCY", "Python")
 COUNTRY: str = os.getenv("COUNTRY", "Ukraine")
+REMOTE: bool = os.getenv("REMOTE", "false").lower() == "true"
 SUFFIX_FILE: str = os.getenv("SUFFIX_FILE", "_request")
 
-options = webdriver.FirefoxOptions()
-options.add_argument('--headless')
-
-driver = webdriver.Firefox(options=options)
-driver.delete_all_cookies()
-driver.maximize_window()
-
 def main():
+	driver = None
+
 	try:
 		logging.info("Парсинг розпочато!")
-		driver.get(f'https://robota.ua/zapros/{VACANCY}/{COUNTRY.lower()}/params;page=1') 
+		
+		options = webdriver.FirefoxOptions()
+		options.add_argument('--headless')
+
+		driver = webdriver.Firefox(options=options)
+		driver.delete_all_cookies()
+		driver.maximize_window()
+		
+		driver.get(f'https://robota.ua/zapros/{VACANCY}/{COUNTRY.lower()}/params;page=1{';scheduleIds=3' if REMOTE else ''}') 
 		
 		index, location = get_last_page(driver)
 
@@ -45,23 +50,30 @@ def main():
 
 		if page_list:
 			for i in page_list:
-				driver.get(f'https://robota.ua/zapros/{VACANCY}/{COUNTRY.lower()}/params;page={i}') 
+				driver.get(f'https://robota.ua/zapros/{VACANCY}/{COUNTRY.lower()}/params;page={i}{';scheduleIds=3' if REMOTE else ''}') 
 
 				parsing(driver, data, current_height, max_height)
 
-		df = pd.DataFrame(data)
-		filename = f"{VACANCY}_{COUNTRY.capitalize()}{SUFFIX_FILE}.csv"
-		df.to_csv(filename, index=False)
+		if len(data) > 0:
+			df = pd.DataFrame(data)
+			filename = f"{VACANCY}_{COUNTRY.capitalize()}{SUFFIX_FILE}.csv"
+			df.to_csv(filename, index=False)
 
-		logging.info("Парсинг завершено")
-		logging.info(f"Усього вакансій: {len(data)}")
-		logging.info(f"Дані збережено у файл: {filename}")
+			logging.info("Парсинг завершено")
+			logging.info(f"Усього вакансій: {len(data)}")
+			logging.info(f"Дані збережено у файл: {filename}")
+		else:
+			logging.error("Даних не вашим запитом не знайдено")
 
 
 	except TimeoutException:
 		logging.error("Timed out waiting for page to load")
 	finally:
-		driver.quit()
+		if driver and isinstance(driver, WebDriver):
+			driver.quit()
 
 if __name__ == "__main__":
-	main()
+	try:
+		main()
+	except KeyboardInterrupt:
+		pass

@@ -48,9 +48,6 @@ def parsing(driver: WebDriver, data: List[dict[str, str]], current_height: int, 
 			except Exception as e:
 				pass 
 
-		if (current_height and max_height) == 0:
-			break
-
 		driver.execute_script("window.scrollBy(0, window.innerHeight);")
 		current_height = driver.execute_script("return window.pageYOffset + window.innerHeight")
 		time.sleep(1.5)

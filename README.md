@@ -25,6 +25,7 @@ This project is designed to parse job postings from robota.ua using Selenium and
    ```env
    VACANCY=Python           # Query for job search
    COUNTRY=Ukraine          # Country (in Latin script or localized as needed)
+   REMOTE=False             # Find remote vacancies
    SUFFIX_FILE=_request     # Suffix for the output file name
    ```
 
